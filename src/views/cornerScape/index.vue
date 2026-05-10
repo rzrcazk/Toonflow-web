@@ -44,14 +44,9 @@
                 { label: '4K', value: '4K' },
               ]"></t-select>
           </t-form-item>
-          <!-- <t-form-item :label="$t('workbench.cornerScape.concurrency')">
-            <t-input-number
-              v-model="concurrentCount"
-              :min="1"
-              :allowInputOverLimit="false"
-              autoWidth
-              :placeholder="$t('workbench.cornerScape.concurrencyPh')"></t-input-number>
-          </t-form-item> -->
+          <t-form-item :label="$t('workbench.cornerScape.textPromptInput')">
+            <t-textarea v-model="otherTextPrompt" :placeholder="$t('workbench.cornerScape.textPromptPh')"></t-textarea>
+          </t-form-item>
           <t-form-item>
             <div class="btnGap ac">
               <div class="selectedInfo" v-if="selectedIds.length > 0">
@@ -59,12 +54,12 @@
                   {{ $t("workbench.cornerScape.selectedCount", { count: selectedIds.length }) }}
                 </t-tag>
               </div>
-              <!-- <div class="ac jb"> -->
-              <t-button theme="primary" block @click="batchGenerationPrompt">{{ $t("workbench.cornerScape.batchGenerationPrompt") }}</t-button>
-              <!-- <t-button theme="primary" style="margin-left: 10px" block @click="batchSelectBindAudio">
+              <div class="ac jb" style="width: 100%">
+                <t-button theme="primary" block @click="batchGenerationPrompt">{{ $t("workbench.cornerScape.batchGenerationPrompt") }}</t-button>
+                <t-button theme="primary" style="margin-left: 10px" block @click="batchSelectBindAudio">
                   {{ $t("workbench.cornerScape.batchBingAudio") }}
                 </t-button>
-              </div> -->
+              </div>
               <t-button theme="primary" block @click="batchGenerationImage">
                 {{ $t("workbench.cornerScape.startBatch") }}
               </t-button>
@@ -83,10 +78,10 @@
             </t-tag>
           </div>
           <t-empty v-if="!item.state && item.promptState !== '生成中'" type="maintenance" :title="$t('workbench.cornerScape.waitingGen')" />
-          <div v-else-if="item.state === '生成中' || item.promptState === '生成中'" class="generatingBox">
+          <div v-else-if="item.state === '生成中' || item.promptState === '生成中' || item.audioBindState == '生成中'" class="generatingBox">
             <t-loading />
             <span class="generatingText">
-              {{ item.promptState === "生成中" ? $t("workbench.cornerScape.generatingPrompt") : $t("workbench.cornerScape.generating") }}
+              {{ item.audioBindState === "生成中" ? $t("workbench.cornerScape.audioState") : $t("workbench.cornerScape.generating") }}
             </span>
           </div>
           <t-popup :content="item.errorReason" v-else-if="item.state === '生成失败'">
@@ -210,7 +205,7 @@
                 @blur="savePromptOnBlur" />
             </t-loading>
           </t-form-item>
-          <!-- <t-form-item :label="$t('workbench.cornerScape.assetsAudioLabel')">
+          <t-form-item :label="$t('workbench.cornerScape.assetsAudioLabel')">
             <div>
               <div>
                 <t-button size="small" theme="primary" variant="outline" @click="selectAudio">
@@ -225,7 +220,7 @@
               </div>
               <div v-else class="assets-empty">{{ $t("workbench.cornerScape.noAudio") }}</div>
             </div>
-          </t-form-item> -->
+          </t-form-item>
           <t-form-item>
             <div class="drawerActions">
               <t-button
@@ -277,12 +272,14 @@ interface DataItem {
   errorReason: string;
   promptErrorReason: string;
   relepedAudio: { id: number; name: string }[];
+  audioBindState: string;
 }
 
 const checkboxValue = ref<string[]>([]);
 const { project } = storeToRefs(projectStore());
 const selectValue = ref(project.value?.imageModel ?? "");
 const resolution = ref("1K");
+const otherTextPrompt = ref("");
 const resolutionOptions = [
   { label: "1K", value: "1K" },
   { label: "2K", value: "2K" },
@@ -323,6 +320,7 @@ onUnmounted(() => {
   }
   stopPolling();
   stopImagePolling();
+  stopAudioPolling();
   // 将所有"生成中"的项重置为空状态
   dataList.value.forEach((item) => {
     if (item.state === "生成中") item.state = "";
@@ -642,6 +640,7 @@ async function batchGenerationPrompt() {
         describe: item.describe,
       })),
       concurrentCount: otherSetting.value.assetsBatchGenereateSize,
+      otherTextPrompt: otherTextPrompt.value,
     });
   } catch (e: any) {
     window.$message.error(e.message ?? $t("workbench.cornerScape.msg.promptGenFail"));
@@ -663,7 +662,7 @@ async function batchSelectBindAudio() {
 
   // 前端先将所有选中项的 promptState 标记为"生成中"，让轮询自动接管状态跟踪
   items.forEach((item) => {
-    item.promptState = "生成中";
+    item.audioBindState = "生成中";
   });
 
   // 清除已选中的项
@@ -677,10 +676,10 @@ async function batchSelectBindAudio() {
     });
   } catch (e: any) {
     window.$message.error(e.message ?? $t("workbench.cornerScape.msg.promptGenFail"));
-    // 生成失败时重置 promptState
+    // 生成失败时重置 audioBindState
     items.forEach((item) => {
       const target = dataList.value.find((row) => row.id === item.id);
-      if (target) target.promptState = "";
+      if (target) target.audioBindState = "";
     });
   }
 }
@@ -745,9 +744,14 @@ const notCompultedData = computed(() => {
 const generatingData = computed(() => {
   return dataList.value.filter((item) => item.state === "生成中");
 });
+const audioBindData = computed(() => {
+  return dataList.value.filter((item) => item.audioBindState === "生成中");
+});
 // 轮询相关
 let pollingTimer: ReturnType<typeof setInterval> | null = null;
 let imagePollingTimer: ReturnType<typeof setInterval> | null = null;
+let audioBindPollingTimer: ReturnType<typeof setInterval> | null = null;
+
 //轮询提示词生成
 async function pollingPromptAssets() {
   if (notCompultedData.value.length === 0) return;
@@ -830,6 +834,46 @@ async function pollingImageAssets() {
     console.error("轮询图片生成状态失败:", e);
   }
 }
+//轮询音频绑定生成
+async function pollingAudioBind() {
+  if (audioBindData.value.length === 0) return;
+  const ids = audioBindData.value.map((item) => item.id);
+  try {
+    const { data } = await axios.post("/cornerScape/pollingAudio", { ids });
+    let hasCompleted = false;
+    if (Array.isArray(data) && data.length) {
+      data.forEach((item: { id: number; audioBindState: string; filePath: string }) => {
+        const target = dataList.value.find((row) => row.id === item.id);
+        if (target) {
+          if (target.audioBindState === "生成中" && item.audioBindState !== "生成中") hasCompleted = true;
+          target.audioBindState = item.audioBindState;
+          if (item.filePath !== undefined) target.filePath = item.filePath;
+        }
+      });
+    }
+    if (hasCompleted) {
+      try {
+        const { data: freshData } = await axios.post("/cornerScape/getAllAssets", {
+          projectId: project.value?.id,
+          type: checkboxValue.value,
+        });
+        (freshData as DataItem[]).forEach((fresh) => {
+          const target = dataList.value.find((row) => row.id === fresh.id);
+          if (target) target.relepedAudio = fresh.relepedAudio;
+        });
+        // 同步更新抽屉中的当前项
+        if (currentItem.value) {
+          const freshCurrent = (freshData as DataItem[]).find((d) => d.id === currentItem.value!.id);
+          if (freshCurrent) currentItem.value.relepedAudio = freshCurrent.relepedAudio;
+        }
+      } catch (e) {
+        console.error("刷新历史图片失败:", e);
+      }
+    }
+  } catch (e) {
+    console.error("轮询音频绑定状态失败:", e);
+  }
+}
 function startPolling() {
   if (pollingTimer) return;
   pollingTimer = setInterval(async () => {
@@ -865,6 +909,22 @@ function stopImagePolling() {
     imagePollingTimer = null;
   }
 }
+function stopAudioPolling() {
+  if (imagePollingTimer) {
+    clearInterval(imagePollingTimer);
+    imagePollingTimer = null;
+  }
+}
+function startAudioPolling() {
+  if (audioBindPollingTimer) return;
+  audioBindPollingTimer = setInterval(async () => {
+    if (audioBindData.value.length === 0) {
+      stopAudioPolling();
+      return;
+    }
+    await pollingAudioBind();
+  }, 3000);
+}
 
 watch(notCompultedData, (val) => {
   if (val.length > 0) {
@@ -882,23 +942,33 @@ watch(generatingData, (val) => {
   }
 });
 
-function removeAudio(id: number) {
-  editForm.relepedAudio = editForm.relepedAudio.filter((a) => a.id !== id);
-}
-async function selectAudio() {
-  const assets = await openAssetsSelector({ title: $t("workbench.script.add.msg.selectAssetsTitle"), types: ["audio"] });
-  if (assets.length) {
-    const existing = new Set(editForm.relepedAudio.map((a) => a.id));
-    for (const a of assets) {
-      if (!existing.has(a.id)) {
-        editForm.relepedAudio.push({ id: a.id, name: a.name });
-      }
-    }
+watch(audioBindData, (val) => {
+  if (val.length > 0) {
+    startAudioPolling();
+  } else {
+    stopAudioPolling();
   }
+});
+async function removeAudio(id: number) {
+  editForm.relepedAudio = editForm.relepedAudio.filter((a) => a.id !== id);
   await axios.post("/cornerScape/updateAssetsAudio", {
     assetsId: editForm.assetsId,
-    audioIds: editForm.relepedAudio.map((i) => i.id),
   });
+}
+async function selectAudio() {
+  const assets = await openAssetsSelector({
+    title: $t("workbench.script.add.msg.selectAssetsTitle"),
+    types: ["audio"],
+    selectorMode: true,
+    multiple: false,
+  });
+  if (assets.length) {
+    editForm.relepedAudio = [{ id: assets[0].id, name: assets[0].name }];
+    await axios.post("/cornerScape/updateAssetsAudio", {
+      assetsId: editForm.assetsId,
+      audioIds: editForm.relepedAudio.map((i) => i.id),
+    });
+  }
 }
 </script>
 
@@ -909,9 +979,8 @@ async function selectAudio() {
   min-height: 0;
   align-items: flex-start;
   .left {
-    overflow: hidden;
     width: clamp(240px, 22vw, 320px);
-    height: fit-content;
+    height: 100%;
     min-height: 0;
     flex-shrink: 0;
     margin-right: 16px;
@@ -932,6 +1001,7 @@ async function selectAudio() {
       min-height: 0;
       display: flex;
       flex-direction: column;
+      overflow: auto;
       :deep(.t-card__body) {
         flex: 1;
         min-height: 0;

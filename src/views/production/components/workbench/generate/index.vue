@@ -8,9 +8,6 @@
     <div class="modelSelect">
       <modeMenu v-model="modelParmas" :modeOptions="modeOptions" :trackId="currentTrack?.id" :modeList="modeList" @modeChange="modeChange" />
     </div>
-    <div class="textLlmSelect" v-if="currentTrack">
-      <modelSelect v-model="textLlmModel" type="text" size="small" placeholder="选择文本模型生成提示词" />
-    </div>
     <div class="generate ac">
       <div class="prompt" v-if="currentTrack">
         <t-card :title="'#' + (activeTrackIndex + 1) + $t('workbench.generate.generateText')" header-bordered class="videoPrompt">
@@ -44,7 +41,6 @@
         @change="trackChange"
         :modelParmas="modelParmas"
         :clampDuration="clampDuration"
-        :textLlmModel="textLlmModel"
         @getData="getGenerateData" />
     </div>
   </div>
@@ -87,8 +83,6 @@ const modelParmas = ref<ModelSetting>({
   duration: 8,
   audio: false,
 });
-
-const textLlmModel = ref<string>(""); // 用于生成视频提示词的文本 LLM 模型
 
 const storyboardList = ref<StoryboardItem[]>([]); // 分镜列表
 
@@ -137,7 +131,20 @@ const imageList = computed({
 
 function modeChange(newVal: string) {
   if (newVal == modelParmas.value.mode) return;
-  if (newVal) {
+  if ((imageList.value.length || currentTrack.value?.prompt) && modelParmas.value.mode) {
+    const dialog = DialogPlugin.confirm({
+      header: $t("workbench.generate.modeChange"),
+      body: $t("workbench.generate.modeChangeConfirm"),
+      confirmBtn: $t("settings.generate.modelChnageSure"),
+      cancelBtn: $t("settings.memory.msg.cancel"),
+      onConfirm: async () => {
+        imageList.value = [];
+        currentTrack.value.prompt = "";
+        dialog.destroy();
+        modelParmas.value.mode = newVal;
+      },
+    });
+  } else if (newVal) {
     modelParmas.value.mode = newVal;
   }
 }
@@ -321,14 +328,13 @@ async function genText() {
           })();
   }
   genTextLoadingMap.value[currentTrackId] = true;
-  console.log("[genText] modelParmas.value.model:", modelParmas.value.model);
   try {
     const { data } = await axios.post("/production/workbench/generateVideoPrompt", {
       projectId: project.value?.id,
       trackId: currentTrackId,
       info: info,
-      model: textLlmModel.value, // 使用文本 LLM 模型生成提示词
-      videoModel: modelParmas.value.model,
+      model: modelParmas.value.model,
+      mode: modelParmas.value.mode,
     });
     changeTrack.prompt = data;
   } catch (e) {
@@ -500,11 +506,6 @@ onUnmounted(() => {
   .referenceImage {
   }
   .modelSelect {
-  }
-  .textLlmSelect {
-    margin-bottom: 8px;
-    width: 100%;
-    max-width: 400px;
   }
   .generate {
     flex: 1;

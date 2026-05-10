@@ -293,8 +293,10 @@ async function getScriptData() {
   if (episodesOptions.value.length) {
     episodesId.value = episodesOptions.value[0].value;
   }
-
-  await productionAgentStore().getHistory();
+  if (status.value !== "pending" && status.value !== "streaming") {
+    episodesId.value && (await productionAgentStore().getFlowData());
+    await productionAgentStore().getHistory();
+  }
 }
 
 async function layoutGraph(direction: "LR" | "TB" = "LR") {
@@ -490,7 +492,6 @@ function animate() {
 }
 
 watch(openShowVisible, (val) => {
-  console.log("%c Line:489 🍔 val", "background:#ffdd4d", val);
   if (!val) {
     animate();
   }
