@@ -89,7 +89,7 @@ export default function openAssetsSelector(options: AssetsSelectOptions = {}): P
               h(AssetsView, {
                 ref: assetsRef,
                 selectorMode: true,
-                allowedTypes: types,
+                allowedTypes: types as Asset['type'][],
                 clipMediaTypes,
                 multiple,
               }),

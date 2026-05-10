@@ -78,6 +78,7 @@ const props = defineProps<{
   modelParmas: ModelSetting;
   imageList: UploadItem[];
   clampDuration: (trackDuration: number) => number;
+  textLlmModel: string;
 }>();
 const activeTrackIndex = defineModel("activeTrackIndex", {
   default: 0,
@@ -254,7 +255,8 @@ function batchGenText() {
           projectId: project.value?.id,
           trackId,
           info,
-          model: props.modelParmas.model,
+          model: props.textLlmModel,
+          videoModel: props.modelParmas.model,
         });
         const targetTrack = trackList.value.find((item) => item.id === trackId);
         if (targetTrack) targetTrack.prompt = data;

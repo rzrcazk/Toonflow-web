@@ -613,6 +613,36 @@
         "projectNamePh": "请输入项目名称",
         "novelType": "小说类型",
         "novelTypePh": "例如:玄幻、科幻、言情",
+        "selectNovelType": "选择小说类型",
+        "novelTypeOptions": {
+          "xifan_qihuan": "西方奇幻",
+          "dongfang_xianxia": "东方仙侠",
+          "kehuan_moshi": "科幻末世",
+          "dushi_richang": "都市日常",
+          "dushi_xiuzhen": "都市修真",
+          "dushi_gaowu": "都市高武",
+          "lishi_gudai": "历史古代",
+          "zhanshen_zhuihui": "战神赘婿",
+          "dushi_zhongtian": "都市种田",
+          "chuantong_xuanhuan": "传统玄幻",
+          "lishi_naodong": "历史脑洞",
+          "xuanyi_naodong": "悬疑脑洞",
+          "dushi_naodong": "都市脑洞",
+          "xuanhuan_naodong": "玄幻脑洞",
+          "xuanyi_lingyi": "悬疑灵异",
+          "kangzhan_diezhan": "抗战谍战",
+          "youxi_tiyu": "游戏体育",
+          "dongman_yansheng": "动漫衍生",
+          "nanpin_yansheng": "男频衍生",
+          "xuanhuan_yanqing": "玄幻言情",
+          "xianyan_naodong": "现言脑洞",
+          "gongdou_zhaidou": "宫斗宅斗",
+          "qingchun_tianchong": "青春甜宠",
+          "xingguang_cuican": "星光璀璨",
+          "zhichang_hunlian": "职场婚恋",
+          "shuangnanzhu": "双男主",
+          "nvpin_yansheng": "女频衍生"
+        },
         "artStyle": "画风",
         "selected": "已选：",
         "selectArtStyle": "请选择画风",
@@ -647,6 +677,7 @@
           "title": "提示词"
         },
         "basedOnScript": "基于剧本",
+        "basedOnAnimalScience": "动物科普视频",
         "mdFile": "视觉手册文件",
         "directorManual": "导演手册",
         "addDirectorManual": "新建导演手册",
@@ -704,7 +735,8 @@
       },
       "type": {
         "novel": "基于小说原文",
-        "script": "基于小说剧本"
+        "script": "基于小说剧本",
+        "animal_science": "动物科普视频"
       }
     },
     "novel": {
@@ -1585,8 +1617,8 @@
       "referenceImage": "参考图片",
       "generatePrompt": "生成提示词",
       "generateVideo": "生成视频",
-      "modeChange": "清空内容",
-      "modeChangeConfirm": "切换模式将会清空当前选中的图片和提示词"
+      "modeChange": "清空提示词",
+      "modeChangeConfirm": "切换模式将会清空当前提示词"
     }
   },
   "login": {

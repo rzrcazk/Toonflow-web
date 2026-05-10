@@ -17,13 +17,20 @@
               <t-select v-model="formState.projectType" :placeholder="$t('workbench.project.dialog.selectType')">
                 <t-option key="基于小说原文" :label="$t('workbench.project.dialog.basedOnNovel')" value="novel" />
                 <t-option key="基于剧本" :label="$t('workbench.project.dialog.basedOnScript')" value="script" />
+                <t-option key="动物科普视频" :label="$t('workbench.project.dialog.basedOnAnimalScience')" value="animal_science" />
               </t-select>
             </t-form-item>
             <t-form-item :label="$t('workbench.project.dialog.projectName')">
               <t-input v-model="formState.name" :placeholder="$t('workbench.project.dialog.projectNamePh')" />
             </t-form-item>
             <t-form-item :label="$t('workbench.project.dialog.novelType')">
-              <t-input v-model="formState.type" :placeholder="$t('workbench.project.dialog.novelTypePh')" />
+              <t-input v-if="isEdit" v-model="formState.type" :placeholder="$t('workbench.project.dialog.novelTypePh')" />
+              <t-select v-else v-model="formState.type" :placeholder="$t('workbench.project.dialog.selectNovelType')" @change="handleNovelTypeChange">
+                <template v-for="option in NOVEL_TYPE_OPTIONS" :key="option.value">
+                  <t-divider v-if="option.separator" style="margin: 4px 0">{{ option.separator }}</t-divider>
+                  <t-option v-else :value="option.value" :label="$t(option.label)" />
+                </template>
+              </t-select>
             </t-form-item>
             <t-form-item :label="$t('workbench.project.dialog.modelData')">
               <div class="ac" style="gap: 5px; width: 100%">
@@ -73,7 +80,7 @@
                         :key="index"
                         class="gridItem"
                         :class="{ active: formState.artStyle === item.stylePath }"
-                        @click="formState.artStyle = item.stylePath">
+                        @click="selectVisualManual(item.stylePath)">
                         <div class="imageWrapper">
                           <img :src="item.images && item.images[0]" :alt="item.name" class="artImage" loading="lazy" />
                           <div class="text">{{ item.name }}</div>
@@ -110,7 +117,7 @@
                         :key="index"
                         class="gridItem"
                         :class="{ active: formState.directorManual === item.directorManual }"
-                        @click="formState.directorManual = item.directorManual">
+                        @click="selectDirectorManual(item.directorManual)">
                         <div class="imageWrapper">
                           <img :src="item.images && item.images[0]" :alt="item.name" class="artImage" loading="lazy" />
                           <div class="text">{{ item.name }}</div>
@@ -190,7 +197,7 @@
                     <t-tab-panel v-for="tab in visualManualTabData" :key="tab.value" :value="tab.value" :label="tab.label">
                       <MdEditor
                         v-model="tab.data"
-                        :theme="themeSetting.mode"
+                        :theme="themeSetting.mode === 'auto' ? 'light' : themeSetting.mode"
                         :toolbars="promptToolbars"
                         :footers="[]"
                         :placeholder="$t('workbench.project.dialog.promptPlaceholder')"
@@ -261,7 +268,7 @@
                     <t-tab-panel v-for="tab in directorManualTabData" :key="tab.value" :value="tab.value" :label="tab.label">
                       <MdEditor
                         v-model="tab.data"
-                        :theme="themeSetting.mode"
+                        :theme="themeSetting.mode === 'auto' ? 'light' : themeSetting.mode"
                         :toolbars="promptToolbars"
                         :footers="[]"
                         :placeholder="$t('workbench.project.dialog.promptPlaceholder')"
@@ -388,6 +395,40 @@ const RATIO_OPTIONS = [
   { value: "9:16", label: "9:16" },
 ];
 
+const NOVEL_TYPE_OPTIONS = [
+  // 男频
+  { value: "nanpin_sep", label: "", artStyle: "", directorManual: "", separator: "男频" },
+  { value: "xifan_qihuan", label: "workbench.project.dialog.novelTypeOptions.xifan_qihuan", artStyle: "3D_chinese_traditional", directorManual: "Xianxia_fantasy" },
+  { value: "dongfang_xianxia", label: "workbench.project.dialog.novelTypeOptions.dongfang_xianxia", artStyle: "3D_chinese_traditional", directorManual: "Xianxia_fantasy" },
+  { value: "kehuan_moshi", label: "workbench.project.dialog.novelTypeOptions.kehuan_moshi", artStyle: "3D_guofeng_cyber", directorManual: "Scifi_post_apocalypse" },
+  { value: "dushi_richang", label: "workbench.project.dialog.novelTypeOptions.dushi_richang", artStyle: "realpeople_modern_city", directorManual: "Urban_workplace_drama" },
+  { value: "dushi_xiuzhen", label: "workbench.project.dialog.novelTypeOptions.dushi_xiuzhen", artStyle: "3D_chinese_traditional", directorManual: "Xianxia_fantasy" },
+  { value: "dushi_gaowu", label: "workbench.project.dialog.novelTypeOptions.dushi_gaowu", artStyle: "3D_anime_render", directorManual: "Hot_blooded_action" },
+  { value: "lishi_gudai", label: "workbench.project.dialog.novelTypeOptions.lishi_gudai", artStyle: "realpeople_ancient_chinese", directorManual: "Historical_epic" },
+  { value: "zhanshen_zhuihui", label: "workbench.project.dialog.novelTypeOptions.zhanshen_zhuihui", artStyle: "realpeople_urban_modern", directorManual: "Hot_blooded_action" },
+  { value: "dushi_zhongtian", label: "workbench.project.dialog.novelTypeOptions.dushi_zhongtian", artStyle: "realpeople_modern_city", directorManual: "Family_warmth" },
+  { value: "chuantong_xuanhuan", label: "workbench.project.dialog.novelTypeOptions.chuantong_xuanhuan", artStyle: "3D_chinese_traditional", directorManual: "Xianxia_fantasy" },
+  { value: "lishi_naodong", label: "workbench.project.dialog.novelTypeOptions.lishi_naodong", artStyle: "realpeople_ancient_chinese", directorManual: "Historical_epic" },
+  { value: "xuanyi_naodong", label: "workbench.project.dialog.novelTypeOptions.xuanyi_naodong", artStyle: "realpeople_urban_modern", directorManual: "Mystery_thriller" },
+  { value: "dushi_naodong", label: "workbench.project.dialog.novelTypeOptions.dushi_naodong", artStyle: "realpeople_modern_city", directorManual: "Urban_workplace_drama" },
+  { value: "xuanhuan_naodong", label: "workbench.project.dialog.novelTypeOptions.xuanhuan_naodong", artStyle: "3D_chinese_traditional", directorManual: "Xianxia_fantasy" },
+  { value: "xuanyi_lingyi", label: "workbench.project.dialog.novelTypeOptions.xuanyi_lingyi", artStyle: "realpeople_urban_modern", directorManual: "Horror_supernatural" },
+  { value: "kangzhan_diezhan", label: "workbench.project.dialog.novelTypeOptions.kangzhan_diezhan", artStyle: "realpeople_ancient_chinese", directorManual: "Historical_epic" },
+  { value: "youxi_tiyu", label: "workbench.project.dialog.novelTypeOptions.youxi_tiyu", artStyle: "3D_anime_render", directorManual: "Hot_blooded_action" },
+  { value: "dongman_yansheng", label: "workbench.project.dialog.novelTypeOptions.dongman_yansheng", artStyle: "2D_90s_japanese_anime", directorManual: "Coming_of_age" },
+  { value: "nanpin_yansheng", label: "workbench.project.dialog.novelTypeOptions.nanpin_yansheng", artStyle: "2D_chinese_guofeng", directorManual: "Coming_of_age" },
+  // 女频
+  { value: "nvpin_sep", label: "", artStyle: "", directorManual: "", separator: "女频" },
+  { value: "xuanhuan_yanqing", label: "workbench.project.dialog.novelTypeOptions.xuanhuan_yanqing", artStyle: "2D_mature_urban_romance", directorManual: "Sweet_romance_novel" },
+  { value: "xianyan_naodong", label: "workbench.project.dialog.novelTypeOptions.xianyan_naodong", artStyle: "realpeople_modern_city", directorManual: "Coming_of_age" },
+  { value: "gongdou_zhaidou", label: "workbench.project.dialog.novelTypeOptions.gongdou_zhaidou", artStyle: "realpeople_ancient_chinese", directorManual: "Historical_epic" },
+  { value: "qingchun_tianchong", label: "workbench.project.dialog.novelTypeOptions.qingchun_tianchong", artStyle: "2D_90s_japanese_anime", directorManual: "Coming_of_age" },
+  { value: "xingguang_cuican", label: "workbench.project.dialog.novelTypeOptions.xingguang_cuican", artStyle: "realpeople_modern_city", directorManual: "Sweet_romance_novel" },
+  { value: "zhichang_hunlian", label: "workbench.project.dialog.novelTypeOptions.zhichang_hunlian", artStyle: "realpeople_modern_city", directorManual: "Urban_workplace_drama" },
+  { value: "shuangnanzhu", label: "workbench.project.dialog.novelTypeOptions.shuangnanzhu", artStyle: "2D_chinese_guofeng", directorManual: "Coming_of_age" },
+  { value: "nvpin_yansheng", label: "workbench.project.dialog.novelTypeOptions.nvpin_yansheng", artStyle: "2D_mature_urban_romance", directorManual: "Sweet_romance_novel" },
+];
+
 const DEFAULT_FORM: () => ProjectFormData & { id: number; era: string; createTime: number; userId: number } = () => ({
   id: 0,
   projectType: "novel",
@@ -411,6 +452,21 @@ const formState = ref(DEFAULT_FORM());
 
 function resetForm() {
   formState.value = DEFAULT_FORM();
+}
+
+function handleNovelTypeChange(genreValue: string) {
+  const option = NOVEL_TYPE_OPTIONS.find((o) => o.value === genreValue);
+  if (!option) return;
+  if (option.artStyle) formState.value.artStyle = option.artStyle;
+  if (option.directorManual) formState.value.directorManual = option.directorManual;
+}
+
+function selectVisualManual(stylePath: string) {
+  formState.value.artStyle = stylePath;
+}
+
+function selectDirectorManual(directorManual: string) {
+  formState.value.directorManual = directorManual;
 }
 
 function handleCancel() {

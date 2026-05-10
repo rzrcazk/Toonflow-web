@@ -61,16 +61,18 @@ function handleReset() {
 }
 
 async function refreshAPI() {
-  try {
-    const res = await fetch("toonflow://getAppUrl");
-    const data = await res.json();
-    if (data?.port) {
-      baseUrl.value = data.url;
-      isElectron.value = true;
-      window.$message.success($t("settings.request.msg.refreshSuccess"));
+  if (isElectron.value) {
+    try {
+      const res = await fetch("toonflow://getAppUrl");
+      const data = await res.json();
+      if (data?.url) {
+        baseUrl.value = data.url;
+        isElectron.value = true;
+        window.$message.success($t("settings.request.msg.refreshSuccess"));
+      }
+    } catch (error) {
+      window.$message.error($t("settings.request.msg.refreshFailed"));
     }
-  } catch (error) {
-    window.$message.error($t("settings.request.msg.refreshFailed"));
   }
 }
 

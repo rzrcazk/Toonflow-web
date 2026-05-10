@@ -7,7 +7,7 @@ const iconModules = import.meta.glob<string>("@/assets/providers/*.{webp,png}", 
 
 /** 从本地 assets/providers 获取图标 URL */
 function icon(id: string): string {
-  for (const [key, url] of Object.entries(iconModules)) {
+  for (const [key, url] of Object.entries(iconModules) as [string, string][]) {
     const filename = key.split("/").pop()?.split(".")[0];
     if (filename === id) return url;
   }

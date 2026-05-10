@@ -53,7 +53,7 @@
             :key="index">
             <div
               class="item fc c"
-              v-if="menu.type === 'btn' && (project.projectType === 'novel' || !menu.nodelOnly)"
+              v-if="menu.type === 'btn' && (project.projectType === 'novel' || project.projectType === 'animal_science' || !menu.nodelOnly)"
               :class="{ active: activeMenu == menu.path }"
               @click="handleClick(menu)">
               <component :is="menu.icon" class="icon" />

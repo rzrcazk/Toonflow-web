@@ -23,7 +23,13 @@
           </div>
           <div>
             <t-tag shape="round">
-              {{ project.projectType == "novel" ? $t(`workbench.project.type.novel`) : $t(`workbench.project.type.script`) }}
+              {{
+                project.projectType == "novel"
+                  ? $t(`workbench.project.type.novel`)
+                  : project.projectType == "animal_science"
+                  ? $t(`workbench.project.type.animal_science`)
+                  : $t(`workbench.project.type.script`)
+              }}
             </t-tag>
           </div>
         </div>
@@ -115,6 +121,7 @@ async function openProject(projectId: string | undefined) {
   project.value = item;
   if (item.projectType === "novel") router.push(`/novel`);
   else if (item.projectType === "script") router.push(`/script`);
+  else if (item.projectType === "animal_science") router.push(`/novel`);
 }
 
 function openEdit(item: {

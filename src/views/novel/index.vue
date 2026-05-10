@@ -195,17 +195,25 @@ function onChange() {
 }
 
 function getNovel() {
+  if (!project.value) {
+    window.$message.error($t("workbench.project.msg.projectNotFound"));
+    return;
+  }
   loading.value = true;
   axios
     .post("/novel/getNovel", {
-      projectId: project.value?.id,
+      projectId: Number(project.value.id),
       page: pagination.value.page,
       limit: pagination.value.pageSize,
       search: searchText.value,
     })
     .then((res) => {
       tableData.value = res.data.data;
-      pagination.value.total = res.data.total;
+      pagination.value.total = Number(res.data.total);
+    })
+    .catch((err) => {
+      console.error("获取小说列表失败:", err);
+      window.$message.error(err?.message || $t("workbench.novel.msg.loadFailed"));
     })
     .finally(() => {
       loading.value = false;

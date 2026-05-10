@@ -1,7 +1,13 @@
+/// <reference types="vite/client" />
+
 /**
  * 全局变量类型声明
  */
 declare const $t: (key: string, ...args: any[]) => string;
+
+interface Window {
+  $electron?: any;
+}
 
 /**
  * Vite 环境变量类型定义
