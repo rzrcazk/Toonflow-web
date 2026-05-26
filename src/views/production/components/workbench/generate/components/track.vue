@@ -80,6 +80,7 @@ const { removeCache } = imageListCacheStore();
 const episodesId = inject<Ref<number>>("episodesId")!;
 const props = defineProps<{
   modelParmas: ModelSetting;
+  videoModel: string;
   imageList: UploadItem[];
   clampDuration: (trackDuration: number) => number;
 }>();
@@ -261,6 +262,7 @@ function batchGenText() {
         trackId,
         info,
         model: props.modelParmas.model,
+        videoModel: props.videoModel,
         mode: props.modelParmas.mode,
       })
       .then(({ data }) => {

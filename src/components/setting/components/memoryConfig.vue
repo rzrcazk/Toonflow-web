@@ -4,11 +4,29 @@
 
     <t-form :data="formData" labelAlign="top" labelWidth="180px" class="memoryForm" @submit="handleSave">
       <t-card :title="$t('settings.memory.vectorModelConfig')" :bordered="true" style="margin-top: 16px">
-        <t-form-item :label="$t('settings.memory.modelFilePath')" name="modelOnnxFile">
+        <t-form-item :label="$t('settings.memory.embeddingProvider')" name="embeddingProvider">
+          <t-radio-group v-model="formData.embeddingProvider" variant="default-filled">
+            <t-radio-button value="local">{{ $t("settings.memory.embeddingProviderLocal") }}</t-radio-button>
+            <t-radio-button value="openai">{{ $t("settings.memory.embeddingProviderOpenAI") }}</t-radio-button>
+          </t-radio-group>
+          <template #help>{{ $t("settings.memory.embeddingProviderHelp") }}</template>
+        </t-form-item>
+        <t-form-item v-if="formData.embeddingProvider === 'openai'" :label="$t('settings.memory.embeddingModel')" name="embeddingModel">
+          <t-select v-model="formData.embeddingModel">
+            <t-option value="text-embedding-3-small" label="text-embedding-3-small" />
+            <t-option value="text-embedding-3-large" label="text-embedding-3-large" />
+          </t-select>
+          <template #help>{{ $t("settings.memory.embeddingModelHelp") }}</template>
+        </t-form-item>
+        <t-form-item v-if="formData.embeddingProvider === 'openai'" :label="$t('settings.memory.embeddingDimensions')" name="embeddingDimensions">
+          <t-input-number v-model="formData.embeddingDimensions" :min="0" :max="3072" :step="1" :allowInputOverLimit="false" />
+          <template #help>{{ $t("settings.memory.embeddingDimensionsHelp") }}</template>
+        </t-form-item>
+        <t-form-item v-if="formData.embeddingProvider === 'local'" :label="$t('settings.memory.modelFilePath')" name="modelOnnxFile">
           <t-tag-input v-model="formData.modelOnnxFile" clearable />
           <template #help>向量模型文件路径：/data/models/{{ formData.modelOnnxFile ? formData.modelOnnxFile.join("/") : "" }}</template>
         </t-form-item>
-        <t-form-item :label="$t('settings.memory.quantizationType')" name="modelDtype">
+        <t-form-item v-if="formData.embeddingProvider === 'local'" :label="$t('settings.memory.quantizationType')" name="modelDtype">
           <t-select v-model="formData.modelDtype" :placeholder="$t('settings.memory.quantizationPlaceholder')">
             <t-option v-for="item in dtypeOptions" :key="item" :value="item" :label="item" />
           </t-select>
@@ -52,11 +70,14 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from "vue";
+import { onMounted, ref, watch } from "vue";
 import { DialogPlugin } from "tdesign-vue-next";
 import axios from "@/utils/axios";
 
 interface MemoryConfigForm {
+  embeddingProvider: "local" | "openai";
+  embeddingModel: string;
+  embeddingDimensions: number;
   messagesPerSummary: number;
   shortTermLimit: number;
   summaryMaxLength: number;
@@ -68,6 +89,9 @@ interface MemoryConfigForm {
 }
 
 const formData = ref<MemoryConfigForm>({
+  embeddingProvider: "local",
+  embeddingModel: "all-MiniLM-L6-v2",
+  embeddingDimensions: 0,
   messagesPerSummary: 3,
   shortTermLimit: 5,
   summaryMaxLength: 500,
@@ -84,11 +108,28 @@ const loading = ref(false);
 const saving = ref(false);
 const clearing = ref(false);
 
+watch(
+  () => formData.value.embeddingProvider,
+  (provider) => {
+    if (provider === "openai" && !formData.value.embeddingModel.startsWith("text-embedding-3-")) {
+      formData.value.embeddingModel = "text-embedding-3-small";
+      formData.value.embeddingDimensions = 0;
+    }
+    if (provider === "local") {
+      formData.value.embeddingModel = "all-MiniLM-L6-v2";
+      formData.value.embeddingDimensions = 0;
+    }
+  },
+);
+
 async function getMemoryConfig() {
   loading.value = true;
   try {
     const { data } = await axios.get("/setting/memoryConfig/getMemory");
     formData.value = {
+      embeddingProvider: data.embeddingProvider ?? "local",
+      embeddingModel: data.embeddingModel ?? "all-MiniLM-L6-v2",
+      embeddingDimensions: data.embeddingDimensions ?? 0,
       messagesPerSummary: data.messagesPerSummary ?? 3,
       shortTermLimit: data.shortTermLimit ?? 5,
       summaryMaxLength: data.summaryMaxLength ?? 500,
@@ -143,6 +184,9 @@ async function handleClearMemory() {
 
 function handleRestory() {
   formData.value = {
+    embeddingProvider: "local",
+    embeddingModel: "all-MiniLM-L6-v2",
+    embeddingDimensions: 0,
     messagesPerSummary: 3,
     shortTermLimit: 5,
     summaryMaxLength: 500,

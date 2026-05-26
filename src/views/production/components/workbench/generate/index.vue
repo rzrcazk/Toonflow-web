@@ -40,6 +40,7 @@
         :image-list="imageList"
         @change="trackChange"
         :modelParmas="modelParmas"
+        :video-model="promptVideoModel"
         :clampDuration="clampDuration"
         @getData="getGenerateData" />
     </div>
@@ -176,6 +177,11 @@ const modeList = computed(() => {
       )
     : [];
 });
+const promptVideoModel = computed(() => {
+  const selectedModelType = (modeOptions.value as { type?: string }).type;
+  if (selectedModelType === "video" && modelParmas.value.model) return modelParmas.value.model;
+  return project.value?.videoModel || modelParmas.value.model;
+});
 const currentTrack = computed({
   get() {
     return trackList.value[activeTrackIndex.value];
@@ -193,8 +199,11 @@ const activeTrackGenTextLoading = computed(() => {
 function clampDuration(trackDuration: number): number {
   const drMap = modeOptions.value?.durationResolutionMap;
   if (Array.isArray(drMap) && drMap.length > 0 && drMap[0].duration?.length) {
-    const durations = drMap[0].duration;
-    return Math.max(Math.min(...durations), Math.min(trackDuration, Math.max(...durations)));
+    const durations = [...new Set(drMap.flatMap((item) => item.duration ?? []).map(Number).filter((duration) => Number.isFinite(duration) && duration > 0))].sort(
+      (a, b) => a - b,
+    );
+    const fallback = durations[0] ?? trackDuration;
+    return durations.filter((duration) => duration <= trackDuration).at(-1) ?? fallback;
   }
   return trackDuration;
 }
@@ -334,6 +343,7 @@ async function genText() {
       trackId: currentTrackId,
       info: info,
       model: modelParmas.value.model,
+      videoModel: promptVideoModel.value,
       mode: modelParmas.value.mode,
     });
     changeTrack.prompt = data;
